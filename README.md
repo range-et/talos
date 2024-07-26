@@ -1,6 +1,6 @@
 # Talos
 
-This project implements a Flask-based API that uses DistilBERT for text generation (question answering) and embedding generation. It's designed to run efficiently on various platforms (Mac, Linux, Windows) and can utilize both CPU and GPU resources. This is good as a tiny LLM to perform low intensity data enrichment tasks. If you have recommendations for other models - please feel free to raise an issue. 
+This project implements a Flask-based API that uses DistilBERT for text generation (question answering) and embedding generation. It's designed to run efficiently on various platforms (Mac, Linux, Windows) and can utilize both CPU and GPU resources. This is good as a tiny LLM to perform low intensity data enrichment tasks. If you have recommendations for other models - please feel free to raise an issue.
 
 ## Table of Contents
 
@@ -16,6 +16,7 @@ This project implements a Flask-based API that uses DistilBERT for text generati
 
 - Text generation (question answering) using DistilBERT
 - Text embedding generation using DistilBERT
+- Batch processing for tokenization, embedding, and text generation
 - Flask-based RESTful API
 - Docker support for easy deployment
 - Automatic GPU utilization when available (CUDA for NVIDIA, MPS for Apple Silicon)
@@ -91,6 +92,86 @@ The server will start on `http://localhost:5000`.
 }
 ```
 
+### 3. Batch Tokenization
+
+- **URL:** `/batch-tokenize-extended`
+- **Method:** `POST`
+- **Content-Type:** `application/json`
+
+**Request Body Schema:**
+```json
+{
+  "texts": ["string"],
+  "max_length": int,
+  "padding": "string",
+  "truncation": boolean
+}
+```
+
+**Response Schema:**
+```json
+{
+  "input_ids": [[int]],
+  "attention_mask": [[int]],
+  "token_type_ids": [[int]]
+}
+```
+
+### 4. Batch Embedding
+
+- **URL:** `/batch-embed-extended`
+- **Method:** `POST`
+- **Content-Type:** `application/json`
+
+**Request Body Schema:**
+```json
+{
+  "texts": ["string"],
+  "max_length": int,
+  "pooling": "string"
+}
+```
+
+**Response Schema:**
+```json
+{
+  "embeddings": [[float]],
+  "pooling_method": "string"
+}
+```
+
+### 5. Batch Text Generation
+
+- **URL:** `/batch-generate-extended`
+- **Method:** `POST`
+- **Content-Type:** `application/json`
+
+**Request Body Schema:**
+```json
+{
+  "contexts": ["string"],
+  "questions": ["string"],
+  "max_length": int
+}
+```
+
+**Response Schema:**
+```json
+{
+  "results": [
+    {
+      "question": "string",
+      "context": "string",
+      "answer": "string",
+      "start_index": int,
+      "end_index": int,
+      "start_score": float,
+      "end_score": float
+    }
+  ]
+}
+```
+
 ## Usage Examples
 
 ### Text Generation
@@ -128,6 +209,43 @@ Expected response:
 }
 ```
 
+### Batch Tokenization
+
+```bash
+curl -X POST http://localhost:5000/batch-tokenize-extended \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["Hello world", "How are you?"],
+    "max_length": 128,
+    "padding": "max_length",
+    "truncation": true
+  }'
+```
+
+### Batch Embedding
+
+```bash
+curl -X POST http://localhost:5000/batch-embed-extended \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["Hello world", "How are you?"],
+    "max_length": 128,
+    "pooling": "mean"
+  }'
+```
+
+### Batch Text Generation
+
+```bash
+curl -X POST http://localhost:5000/batch-generate-extended \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contexts": ["The quick brown fox jumps over the lazy dog.", "Python is a programming language."],
+    "questions": ["What does the fox do?", "What is Python?"],
+    "max_length": 384
+  }'
+```
+
 ## Docker Deployment
 
 1. Build the Docker image:
@@ -151,12 +269,10 @@ docker run --gpus all -p 5000:5000 distilbert-api
   - On systems with NVIDIA GPUs, it will use CUDA.
   - On Apple Silicon Macs, it will use the Metal Performance Shaders (MPS) backend.
   - On systems without GPU support, it will fall back to CPU.
-
 - For production use, consider using a production-grade WSGI server like Gunicorn (already configured in the Dockerfile).
-
 - The first request might be slow as the model is loaded into memory. Subsequent requests will be faster.
-
 - Consider implementing request queuing and load balancing for high-traffic scenarios.
+- Batch processing endpoints can significantly improve efficiency for multiple inputs.
 
 ## Contributing
 
