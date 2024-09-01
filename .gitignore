@@ -1,3 +1,7 @@
+# the model files cause just download them when needed 
+models/mpt-7b
+models/distilbert
+
 # DS Store 
 .DS_Store
 

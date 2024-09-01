@@ -13,6 +13,7 @@ protobuf = "*"
 gunicorn = "*"
 torchvision = "*"
 torchaudio = "*"
+sentencepiece = "*"
 
 [dev-packages]
 

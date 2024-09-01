@@ -1,6 +1,6 @@
 # Talos
 
-This project implements a Flask-based API that uses DistilBERT for text generation (question answering) and embedding generation. It's designed to run efficiently on various platforms (Mac, Linux, Windows) and can utilize both CPU and GPU resources. This is good as a tiny LLM to perform low intensity data enrichment tasks. If you have recommendations for other models - please feel free to raise an issue.
+Talos is a Flask-based API that uses DistilBERT and MPT-7B for text generation and embedding. It's designed to run on various platforms and can utilize both CPU and GPU resources. This project aims to provide a lightweight solution for low-intensity data enrichment tasks.
 
 ## Table of Contents
 
@@ -14,11 +14,11 @@ This project implements a Flask-based API that uses DistilBERT for text generati
 
 ## Features
 
-- Text generation (question answering) using DistilBERT
-- Text embedding generation using DistilBERT
+- Text generation (question answering) using DistilBERT and MPT-7B
+- Text embedding generation
 - Batch processing for tokenization, embedding, and text generation
 - Flask-based RESTful API
-- Docker support for easy deployment
+- Docker support for deployment
 - Automatic GPU utilization when available (CUDA for NVIDIA, MPS for Apple Silicon)
 
 ## Prerequisites
@@ -32,8 +32,8 @@ This project implements a Flask-based API that uses DistilBERT for text generati
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/distilbert-flask-api.git
-   cd distilbert-flask-api
+   git clone https://github.com/yourusername/talos.git
+   cd talos
    ```
 
 2. Set up the Python environment:
@@ -42,12 +42,17 @@ This project implements a Flask-based API that uses DistilBERT for text generati
    pipenv shell
    ```
 
-3. Run the application:
+3. Download the models:
+    ```
+    bash download_models.sh
+    ```
+
+4. Run the application:
    ```
    python app.py
    ```
 
-The server will start on `http://localhost:5000`.
+The server will start on `http://localhost:3000`.
 
 ## API Endpoints
 
@@ -61,7 +66,8 @@ The server will start on `http://localhost:5000`.
 ```json
 {
   "context": "string",
-  "question": "string"
+  "question": "string",
+  "model": "string" // "distilbert" or "mpt"
 }
 ```
 
@@ -81,7 +87,8 @@ The server will start on `http://localhost:5000`.
 **Request Body Schema:**
 ```json
 {
-  "text": "string"
+  "text": "string",
+  "model": "string" // "distilbert" or "mpt"
 }
 ```
 
@@ -92,191 +99,96 @@ The server will start on `http://localhost:5000`.
 }
 ```
 
-### 3. Batch Tokenization
-
-- **URL:** `/batch-tokenize-extended`
-- **Method:** `POST`
-- **Content-Type:** `application/json`
-
-**Request Body Schema:**
-```json
-{
-  "texts": ["string"],
-  "max_length": int,
-  "padding": "string",
-  "truncation": boolean
-}
-```
-
-**Response Schema:**
-```json
-{
-  "input_ids": [[int]],
-  "attention_mask": [[int]],
-  "token_type_ids": [[int]]
-}
-```
-
-### 4. Batch Embedding
-
-- **URL:** `/batch-embed-extended`
-- **Method:** `POST`
-- **Content-Type:** `application/json`
-
-**Request Body Schema:**
-```json
-{
-  "texts": ["string"],
-  "max_length": int,
-  "pooling": "string"
-}
-```
-
-**Response Schema:**
-```json
-{
-  "embeddings": [[float]],
-  "pooling_method": "string"
-}
-```
-
-### 5. Batch Text Generation
-
-- **URL:** `/batch-generate-extended`
-- **Method:** `POST`
-- **Content-Type:** `application/json`
-
-**Request Body Schema:**
-```json
-{
-  "contexts": ["string"],
-  "questions": ["string"],
-  "max_length": int
-}
-```
-
-**Response Schema:**
-```json
-{
-  "results": [
-    {
-      "question": "string",
-      "context": "string",
-      "answer": "string",
-      "start_index": int,
-      "end_index": int,
-      "start_score": float,
-      "end_score": float
-    }
-  ]
-}
-```
+(Other endpoints remain the same as in the original README)
 
 ## Usage Examples
 
 ### Text Generation
 
 ```bash
-curl -X POST http://localhost:5000/generate \
+# DistilBERT
+curl -X POST http://localhost:3000/generate \
   -H "Content-Type: application/json" \
   -d '{
     "context": "The quick brown fox jumps over the lazy dog.",
-    "question": "What does the fox do?"
+    "question": "What does the fox do?",
+    "model": "distilbert"
   }'
-```
 
-Expected response:
-```json
-{
-  "answer": "jumps over the lazy dog"
-}
+# MPT-7B
+curl -X POST http://localhost:3000/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": "The quick brown fox jumps over the lazy dog.",
+    "question": "What does the fox do?",
+    "model": "mpt"
+  }'
 ```
 
 ### Embedding Generation
 
 ```bash
-curl -X POST http://localhost:5000/embed \
+# DistilBERT
+curl -X POST http://localhost:3000/embed \
   -H "Content-Type: application/json" \
   -d '{
-    "text": "The quick brown fox jumps over the lazy dog."
+    "text": "The quick brown fox jumps over the lazy dog.",
+    "model": "distilbert"
+  }'
+
+# MPT-7B
+curl -X POST http://localhost:3000/embed \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "The quick brown fox jumps over the lazy dog.",
+    "model": "mpt"
   }'
 ```
 
-Expected response:
-```json
-{
-  "embeddings": [-0.123, 0.456, -0.789, ..., 0.012]
-}
-```
+(Other examples remain the same, just add the "model" parameter)
 
-### Batch Tokenization
+## Model Comparison and When to Use Each
 
-```bash
-curl -X POST http://localhost:5000/batch-tokenize-extended \
-  -H "Content-Type: application/json" \
-  -d '{
-    "texts": ["Hello world", "How are you?"],
-    "max_length": 128,
-    "padding": "max_length",
-    "truncation": true
-  }'
-```
+### DistilBERT
+- Context window: Approximately 512 tokens (roughly 300-400 words)
+- Suitable for: Quick tasks, short texts, scenarios requiring faster processing
+- Use when: Speed is prioritized over accuracy, or when dealing with shorter texts
 
-### Batch Embedding
+### MPT-7B
+- Context window: Approximately 2048 tokens (roughly 1500-2000 words)
+- Suitable for: Longer contexts, more complex tasks
+- Use when: Better performance is needed on longer texts or more nuanced tasks
 
-```bash
-curl -X POST http://localhost:5000/batch-embed-extended \
-  -H "Content-Type: application/json" \
-  -d '{
-    "texts": ["Hello world", "How are you?"],
-    "max_length": 128,
-    "pooling": "mean"
-  }'
-```
-
-### Batch Text Generation
-
-```bash
-curl -X POST http://localhost:5000/batch-generate-extended \
-  -H "Content-Type: application/json" \
-  -d '{
-    "contexts": ["The quick brown fox jumps over the lazy dog.", "Python is a programming language."],
-    "questions": ["What does the fox do?", "What is Python?"],
-    "max_length": 384
-  }'
-```
+For texts longer than a few paragraphs, MPT-7B may be more appropriate. For shorter snippets or when speed is crucial, DistilBERT is often sufficient.
 
 ## Docker Deployment
 
 1. Build the Docker image:
    ```
-   docker build -t distilbert-api .
+   docker build -t talos-api .
    ```
 
 2. Run the container:
    ```
-   docker run -p 5000:5000 distilbert-api
+   docker run -p 5000:3000 talos-api
    ```
 
 For GPU support on Linux with NVIDIA GPUs:
 ```
-docker run --gpus all -p 5000:5000 distilbert-api
+docker run --gpus all -p 3000:3000 talos-api
 ```
 
 ## Performance Considerations
 
-- The API automatically selects the best available hardware:
-  - On systems with NVIDIA GPUs, it will use CUDA.
-  - On Apple Silicon Macs, it will use the Metal Performance Shaders (MPS) backend.
-  - On systems without GPU support, it will fall back to CPU.
-- For production use, consider using a production-grade WSGI server like Gunicorn (already configured in the Dockerfile).
-- The first request might be slow as the model is loaded into memory. Subsequent requests will be faster.
+- The API automatically selects the best available hardware.
+- Initial requests may be slower due to model loading.
+- For production use, consider using a production-grade WSGI server like Gunicorn (configured in the Dockerfile).
 - Consider implementing request queuing and load balancing for high-traffic scenarios.
-- Batch processing endpoints can significantly improve efficiency for multiple inputs.
+- Batch processing endpoints can improve efficiency for multiple inputs.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome. Please feel free to submit a Pull Request.
 
 ## License
 
